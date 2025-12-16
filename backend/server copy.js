@@ -6,63 +6,49 @@ import fs from "fs";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 
-// ----------------------
-// Load environment variables
-// ----------------------
+// Load env
 dotenv.config();
 
-// ----------------------
 // Fix __dirname for ES modules
-// ----------------------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ----------------------
-// Initialize Express app
-// ----------------------
 const app = express();
 
-// ----------------------
-// CORS Setup (allow frontend)
-// ----------------------
+// --------------------------------
+// MIDDLEWARE
+// --------------------------------
 app.use(
   cors({
-    origin: "https://your-frontend-domain.vercel.app", // <-- replace with your Vercel frontend URL
-    credentials: true, // allow cookies / auth headers
+    origin: "*",
   })
 );
-
-// ----------------------
-// Middleware: parse JSON
-// ----------------------
 app.use(express.json());
 
-// ----------------------
-// Create upload directory if it doesn't exist
-// ----------------------
+// Create upload directory if not exist
 const cvUploadPath = path.join(__dirname, "uploads/cv");
+
 if (!fs.existsSync(cvUploadPath)) {
   fs.mkdirSync(cvUploadPath, { recursive: true });
   console.log("📁 Created folder: uploads/cv");
 }
 
-// ----------------------
-// Static file hosting for uploads
-// ----------------------
+// Static file hosting
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ----------------------
-// Import routes
-// ----------------------
+
+// --------------------------------
+// ROUTES
+// --------------------------------
 import applicantRoutes from "./routes/applicantRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
 app.use("/api/applicants", applicantRoutes);
 app.use("/api/admin", adminRoutes);
 
-// ----------------------
-// Connect to MongoDB
-// ----------------------
+// --------------------------------
+// MONGOOSE CONNECT
+// --------------------------------
 mongoose
   .connect(process.env.MONGODB_URI, {
     dbName: "hr_system_db",
@@ -70,9 +56,9 @@ mongoose
   .then(() => console.log("🔥 MongoDB Connected Successfully"))
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
-// ----------------------
-// Global error handler
-// ----------------------
+// --------------------------------
+// GLOBAL ERROR HANDLER
+// --------------------------------
 app.use((err, req, res, next) => {
   console.error("❌ Caught by Error Middleware:", err);
 
@@ -82,10 +68,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ----------------------
-// Start server
-// ----------------------
+// --------------------------------
+// START SERVER (Railway requires dynamic port!!!)
+// --------------------------------
 const PORT = process.env.PORT || 4000;
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
