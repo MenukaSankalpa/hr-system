@@ -1,173 +1,65 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import {
-  Plus,
-  Eye,
-  Edit,
-  Trash2,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Star,
-} from "lucide-react";
-
+import { Plus, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle, Clock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-
 import { authenticatedFetch } from "@/lib/api";
 
-// -------------------------------
-// TYPES AND HELPERS
-// -------------------------------
-type BadgeVariant = "default" | "destructive" | "outline";
-type ApplicantStatus = "selected" | "not-selected" | "future-select" | "pending";
-
-interface StatusVisuals {
-  icon: React.ElementType;
-  iconClassName: string;
-  variant: BadgeVariant;
-  badgeClassName?: string;
-}
-
-const getStatusVisuals = (status: ApplicantStatus | string): StatusVisuals => {
+// Badge & Status helper
+const getStatusVisuals = (status: string) => {
   const normalized = (status || "pending").toLowerCase().trim();
-
   switch (normalized) {
-    case "selected":
-      return {
-        icon: CheckCircle,
-        iconClassName: "text-green-500",
-        variant: "default",
-        badgeClassName: "bg-green-500 hover:bg-green-600 text-white border-transparent",
-      };
-    case "future-select":
-      return {
-        icon: Star,
-        iconClassName: "text-blue-500",
-        variant: "default",
-        badgeClassName: "bg-blue-500 hover:bg-blue-600 text-white border-transparent",
-      };
-    case "not-selected":
-      return {
-        icon: XCircle,
-        iconClassName: "text-red-500",
-        variant: "destructive",
-        badgeClassName: "bg-red-500 hover:bg-red-600 text-white border-transparent",
-      };
-    case "pending":
-    default:
-      return {
-        icon: Clock,
-        iconClassName: "text-gray-500",
-        variant: "outline",
-      };
+    case "selected": return { icon: CheckCircle, iconClassName: "text-green-500", variant: "default", badgeClassName: "bg-green-500 hover:bg-green-600 text-white border-transparent" };
+    case "future-select": return { icon: Star, iconClassName: "text-blue-500", variant: "default", badgeClassName: "bg-blue-500 hover:bg-blue-600 text-white border-transparent" };
+    case "not-selected": return { icon: XCircle, iconClassName: "text-red-500", variant: "destructive", badgeClassName: "bg-red-500 hover:bg-red-600 text-white border-transparent" };
+    case "pending": 
+    default: return { icon: Clock, iconClassName: "text-gray-500", variant: "outline" };
   }
 };
 
-// -------------------------------
-// API FUNCTIONS
-// -------------------------------
-async function getApplicants() {
-  return authenticatedFetch("/applicants");
-}
+// API calls
+async function getApplicants() { return authenticatedFetch("/applicants"); }
+async function deleteApplicant(id: string) { return authenticatedFetch(`/applicants/${id}`, { method: "DELETE" }); }
 
-async function deleteApplicant(id: string) {
-  return authenticatedFetch(`/applicants/${id}`, { method: "DELETE" });
-}
-
-// -------------------------------
-// MAIN COMPONENT
-// -------------------------------
 export default function Applicants() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [deleteDialog, setDeleteDialog] = useState({
-    open: false,
-    applicantId: "",
-    applicantName: "",
-  });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, applicantId: "", applicantName: "" });
 
-  // Fetch applicants
-  const { data, isLoading } = useQuery({
-    queryKey: ["applicants"],
-    queryFn: getApplicants,
-  });
-
-  // Delete applicant mutation
-  const deleteMutation = useMutation({
-    mutationFn: deleteApplicant,
+  const { data, isLoading } = useQuery(["applicants"], getApplicants);
+  const deleteMutation = useMutation(deleteApplicant, {
     onSuccess: () => {
-      toast({
-        title: "Deleted",
-        description: `${deleteDialog.applicantName} was deleted successfully.`,
-      });
-      queryClient.invalidateQueries({ queryKey: ["applicants"] });
+      toast({ title: "Deleted", description: `${deleteDialog.applicantName} removed` });
+      queryClient.invalidateQueries(["applicants"]);
       setDeleteDialog({ open: false, applicantId: "", applicantName: "" });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete applicant.",
-        variant: "destructive",
-      });
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message || "Failed", variant: "destructive" });
       setDeleteDialog({ open: false, applicantId: "", applicantName: "" });
-    },
+    }
   });
+
+  const openDelete = (id: string, name: string) => setDeleteDialog({ open: true, applicantId: id, applicantName: name });
+  const confirmDelete = () => deleteMutation.mutate(deleteDialog.applicantId);
 
   const applicants = data || [];
 
-  const openDeleteConfirmation = (id: string, name: string) => {
-    setDeleteDialog({ open: true, applicantId: id, applicantName: name });
-  };
-
-  const confirmDelete = () => {
-    if (deleteDialog.applicantId) {
-      deleteMutation.mutate(deleteDialog.applicantId);
-    }
-  };
-
   return (
     <div className="p-6 space-y-6">
-      {/* HEADER */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Applicants</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage and track applicant records
-          </p>
-        </div>
-        <Button onClick={() => navigate("/applicants/new")}>
-          <Plus className="h-4 w-4 mr-2" /> Add Applicant
-        </Button>
+        <h1 className="text-3xl font-bold">Applicants</h1>
+        <Button onClick={() => navigate("/applicants/new")}><Plus className="h-4 w-4 mr-2" /> Add Applicant</Button>
       </div>
 
-      {/* APPLICANTS TABLE */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Applicants</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>All Applicants</CardTitle></CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-auto">
             <Table>
@@ -186,16 +78,11 @@ export default function Applicants() {
 
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8">Loading...</TableCell></TableRow>
                 ) : applicants.length > 0 ? (
                   applicants.map((applicant: any) => {
                     const visuals = getStatusVisuals(applicant.status);
-                    const IconComponent = visuals.icon;
-
+                    const Icon = visuals.icon;
                     return (
                       <TableRow key={applicant._id}>
                         <TableCell className="font-medium">{applicant.name}</TableCell>
@@ -205,35 +92,23 @@ export default function Applicants() {
                         <TableCell>{applicant.totalMarks ?? 0}/50</TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
-                            <IconComponent className={`h-4 w-4 ${visuals.iconClassName}`} />
-                            <Badge variant={visuals.variant as any} className={`capitalize ${visuals.badgeClassName}`}>
-                              {applicant.status || "Pending"}
-                            </Badge>
+                            <Icon className={`h-4 w-4 ${visuals.iconClassName}`} />
+                            <Badge variant={visuals.variant as any} className={`capitalize ${visuals.badgeClassName}`}>{applicant.status || "Pending"}</Badge>
                           </div>
                         </TableCell>
                         <TableCell>{applicant.createdByName || "-"}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => navigate(`/applicants/${applicant._id}`)}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => navigate(`/applicants/edit/${applicant._id}`)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => openDeleteConfirmation(applicant._id, applicant.name)}>
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => navigate(`/applicants/${applicant._id}`)}><Eye className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => navigate(`/applicants/edit/${applicant._id}`)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => openDelete(applicant._id, applicant.name)}><Trash2 className="h-4 w-4 text-red-600" /></Button>
                           </div>
                         </TableCell>
                       </TableRow>
                     );
                   })
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      No applicants found
-                    </TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8">No applicants found</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -241,23 +116,16 @@ export default function Applicants() {
         </CardContent>
       </Card>
 
-      {/* DELETE CONFIRMATION DIALOG */}
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
+      <Dialog open={deleteDialog.open} onOpenChange={(o) => setDeleteDialog({ ...deleteDialog, open: o })}>
         <DialogContent className="max-w-xs rounded-lg shadow-2xl">
           <DialogHeader className="items-center text-center pt-4">
             <AlertTriangle className="h-8 w-8 text-red-600 mb-2 animate-pulse" />
             <DialogTitle className="text-xl font-extrabold text-red-700">Confirm Deletion</DialogTitle>
-            <DialogDescription className="text-center text-gray-600 mt-2">
-              Are you sure you want to permanently delete the applicant <span className="font-bold">{deleteDialog.applicantName}</span>? This action is irreversible.
-            </DialogDescription>
+            <DialogDescription>Are you sure you want to permanently delete <span className="font-bold text-foreground">{deleteDialog.applicantName}</span>?</DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row gap-3 mt-4 w-full">
-            <Button variant="outline" onClick={() => setDeleteDialog({ ...deleteDialog, open: false })} className="flex-1">
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={deleteMutation.isLoading} className="flex-1">
-              {deleteMutation.isLoading ? "Deleting..." : "Delete Permanently"}
-            </Button>
+            <Button variant="outline" onClick={() => setDeleteDialog({ ...deleteDialog, open: false })} className="flex-1">Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteMutation.isLoading} className="flex-1">{deleteMutation.isLoading ? "Deleting..." : "Delete Permanently"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
