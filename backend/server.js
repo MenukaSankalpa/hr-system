@@ -27,7 +27,7 @@ const app = express();
 // ----------------------
 app.use(
   cors({
-    origin: "https://your-frontend-domain.vercel.app", // <-- replace with your Vercel frontend URL
+    origin: "https://hr-system-eta.vercel.app/", // <-- replace with your Vercel frontend URL
     credentials: true, // allow cookies / auth headers
   })
 );
