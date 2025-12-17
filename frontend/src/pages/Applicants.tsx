@@ -12,6 +12,7 @@ import {
   Clock,
   Star,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -33,14 +34,11 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
-// ==============================
-// ✅ ENVIRONMENT CONFIG
-// ==============================
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+import { authenticatedFetch } from "@/lib/api";
 
-// ==============================
-// ✅ TYPE & HELPER FUNCTIONS
-// ==============================
+// -------------------------------
+// TYPES AND HELPERS
+// -------------------------------
 type BadgeVariant = "default" | "destructive" | "outline";
 type ApplicantStatus = "selected" | "not-selected" | "future-select" | "pending";
 
@@ -52,9 +50,9 @@ interface StatusVisuals {
 }
 
 const getStatusVisuals = (status: ApplicantStatus | string): StatusVisuals => {
-  const normalizedStatus = (status || "pending").toLowerCase().trim();
+  const normalized = (status || "pending").toLowerCase().trim();
 
-  switch (normalizedStatus) {
+  switch (normalized) {
     case "selected":
       return {
         icon: CheckCircle,
@@ -86,32 +84,20 @@ const getStatusVisuals = (status: ApplicantStatus | string): StatusVisuals => {
   }
 };
 
-// ==============================
-// ✅ API FUNCTIONS
-// ==============================
+// -------------------------------
+// API FUNCTIONS
+// -------------------------------
 async function getApplicants() {
-  const res = await fetch(`${API_URL}/api/applicants`);
-  if (!res.ok) throw new Error("Failed to fetch applicants");
-  return res.json();
+  return authenticatedFetch("/applicants");
 }
 
 async function deleteApplicant(id: string) {
-  const res = await fetch(`${API_URL}/api/applicants/${id}`, { method: "DELETE" });
-  if (!res.ok) {
-    let errorData;
-    try {
-      errorData = await res.json();
-    } catch {
-      throw new Error("Invalid server error");
-    }
-    throw new Error(errorData?.message || "Failed to delete applicant");
-  }
-  return res.json();
+  return authenticatedFetch(`/applicants/${id}`, { method: "DELETE" });
 }
 
-// ==============================
-// ✅ MAIN COMPONENT
-// ==============================
+// -------------------------------
+// MAIN COMPONENT
+// -------------------------------
 export default function Applicants() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -123,25 +109,27 @@ export default function Applicants() {
     applicantName: "",
   });
 
+  // Fetch applicants
   const { data, isLoading } = useQuery({
     queryKey: ["applicants"],
     queryFn: getApplicants,
   });
 
+  // Delete applicant mutation
   const deleteMutation = useMutation({
     mutationFn: deleteApplicant,
     onSuccess: () => {
       toast({
-        title: "Deletion Successful",
-        description: `${deleteDialog.applicantName} has been permanently removed.`,
+        title: "Deleted",
+        description: `${deleteDialog.applicantName} was deleted successfully.`,
       });
       queryClient.invalidateQueries({ queryKey: ["applicants"] });
       setDeleteDialog({ open: false, applicantId: "", applicantName: "" });
     },
     onError: (error: any) => {
       toast({
-        title: "Error Deleting Applicant",
-        description: error.message || "Failed to delete applicant due to a network error.",
+        title: "Error",
+        description: error.message || "Failed to delete applicant.",
         variant: "destructive",
       });
       setDeleteDialog({ open: false, applicantId: "", applicantName: "" });
@@ -155,12 +143,14 @@ export default function Applicants() {
   };
 
   const confirmDelete = () => {
-    if (deleteDialog.applicantId) deleteMutation.mutate(deleteDialog.applicantId);
+    if (deleteDialog.applicantId) {
+      deleteMutation.mutate(deleteDialog.applicantId);
+    }
   };
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Applicants</h1>
@@ -173,7 +163,7 @@ export default function Applicants() {
         </Button>
       </div>
 
-      {/* Applicants Table */}
+      {/* APPLICANTS TABLE */}
       <Card>
         <CardHeader>
           <CardTitle>All Applicants</CardTitle>
@@ -193,6 +183,7 @@ export default function Applicants() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {isLoading ? (
                   <TableRow>
@@ -204,6 +195,7 @@ export default function Applicants() {
                   applicants.map((applicant: any) => {
                     const visuals = getStatusVisuals(applicant.status);
                     const IconComponent = visuals.icon;
+
                     return (
                       <TableRow key={applicant._id}>
                         <TableCell className="font-medium">{applicant.name}</TableCell>
@@ -249,18 +241,16 @@ export default function Applicants() {
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
+      {/* DELETE CONFIRMATION DIALOG */}
       <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
         <DialogContent className="max-w-xs rounded-lg shadow-2xl">
           <DialogHeader className="items-center text-center pt-4">
             <AlertTriangle className="h-8 w-8 text-red-600 mb-2 animate-pulse" />
             <DialogTitle className="text-xl font-extrabold text-red-700">Confirm Deletion</DialogTitle>
             <DialogDescription className="text-center text-gray-600 mt-2">
-              Are you sure you want to permanently delete the applicant{" "}
-              <span className="font-bold text-foreground">"{deleteDialog.applicantName}"</span>? This action is irreversible.
+              Are you sure you want to permanently delete the applicant <span className="font-bold">{deleteDialog.applicantName}</span>? This action is irreversible.
             </DialogDescription>
           </DialogHeader>
-
           <DialogFooter className="flex-row gap-3 mt-4 w-full">
             <Button variant="outline" onClick={() => setDeleteDialog({ ...deleteDialog, open: false })} className="flex-1">
               Cancel
