@@ -33,9 +33,12 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
-// ⭐ Replace this with your actual Render URL
-const API_BASE_URL = "https://backendhr-1-rxgk.onrender.com/api";
+// ⭐ IMPORT THE AUTHENTICATED FETCH UTILITY
+import { authenticatedFetch } from "@/lib/api";
 
+// ===================================================
+// 1. TYPES AND STYLING HELPERS
+// ===================================================
 type BadgeVariant = "default" | "destructive" | "outline";
 type ApplicantStatus = "selected" | "not-selected" | "future-select" | "pending";
 
@@ -48,6 +51,7 @@ interface StatusVisuals {
 
 const getStatusVisuals = (status: ApplicantStatus | string): StatusVisuals => {
   const normalizedStatus = (status || "pending").toLowerCase().trim();
+
   switch (normalizedStatus) {
     case "selected":
       return {
@@ -79,24 +83,23 @@ const getStatusVisuals = (status: ApplicantStatus | string): StatusVisuals => {
   }
 };
 
-// ⭐ API FETCH FUNCTIONS
+// ===================================================
+// 2. API FUNCTIONS (Using authenticatedFetch)
+// ===================================================
 async function getApplicants() {
-  const res = await fetch(`${API_BASE_URL}/applicants`);
-  if (!res.ok) throw new Error("Failed to fetch applicants");
-  return res.json();
+  // Points to https://backendhr-1-rxgk.onrender.com/api/applicants
+  return authenticatedFetch("/applicants");
 }
 
 async function deleteApplicant(id: string) {
-  const res = await fetch(`${API_BASE_URL}/applicants/${id}`, {
+  return authenticatedFetch(`/applicants/${id}`, {
     method: "DELETE",
   });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData?.message || "Failed to delete applicant");
-  }
-  return res.json();
 }
 
+// ===================================================
+// 3. MAIN COMPONENT
+// ===================================================
 export default function Applicants() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -108,17 +111,19 @@ export default function Applicants() {
     applicantName: "",
   });
 
+  // ⭐ Fetch applicants with TanStack Query
   const { data, isLoading } = useQuery({
     queryKey: ["applicants"],
     queryFn: getApplicants,
   });
 
+  // ⭐ Delete mutation
   const deleteMutation = useMutation({
     mutationFn: deleteApplicant,
     onSuccess: () => {
       toast({
         title: "Deletion Successful",
-        description: `${deleteDialog.applicantName} has been removed.`,
+        description: `${deleteDialog.applicantName} has been permanently removed.`,
       });
       queryClient.invalidateQueries({ queryKey: ["applicants"] });
       setDeleteDialog({ open: false, applicantId: "", applicantName: "" });
@@ -126,17 +131,21 @@ export default function Applicants() {
     onError: (error: any) => {
       toast({
         title: "Error Deleting Applicant",
-        description: error.message,
+        description: error.message || "Failed to delete applicant.",
         variant: "destructive",
       });
-      setDeleteDialog({ ...deleteDialog, open: false });
+      setDeleteDialog({ open: false, applicantId: "", applicantName: "" });
     },
   });
 
-  const applicants = data || [];
+  const applicants = Array.isArray(data) ? data : [];
 
   const openDeleteConfirmation = (id: string, name: string) => {
-    setDeleteDialog({ open: true, applicantId: id, applicantName: name });
+    setDeleteDialog({
+      open: true,
+      applicantId: id,
+      applicantName: name,
+    });
   };
 
   const confirmDelete = () => {
@@ -150,15 +159,22 @@ export default function Applicants() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Applicants</h1>
-          <p className="text-muted-foreground mt-1">Manage applicant records</p>
+          <p className="text-muted-foreground mt-1">
+            Manage and track applicant records
+          </p>
         </div>
+
         <Button onClick={() => navigate("/applicants/new")}>
-          <Plus className="h-4 w-4 mr-2" /> Add Applicant
+          <Plus className="h-4 w-4 mr-2" />
+          Add Applicant
         </Button>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>All Applicants</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>All Applicants</CardTitle>
+        </CardHeader>
+
         <CardContent>
           <div className="rounded-md border overflow-auto">
             <Table>
@@ -173,37 +189,69 @@ export default function Applicants() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <div className="flex items-center justify-center space-x-2">
+                        <Clock className="h-5 w-5 animate-spin text-muted-foreground" />
+                        <span>Loading applicants...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : applicants.length > 0 ? (
                   applicants.map((applicant: any) => {
                     const visuals = getStatusVisuals(applicant.status);
                     const IconComponent = visuals.icon;
+
                     return (
                       <TableRow key={applicant._id}>
-                        <TableCell className="font-medium">{applicant.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {applicant.name}
+                        </TableCell>
                         <TableCell>{applicant.nicNumber || "-"}</TableCell>
                         <TableCell>{applicant.phone || "-"}</TableCell>
                         <TableCell>{applicant.position || "-"}</TableCell>
-                        <TableCell>{applicant.totalMarks ?? 0}/50</TableCell>
+                        <TableCell>
+                          {applicant.totalMarks ?? 0}/50
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-2">
-                            <IconComponent className={`h-4 w-4 ${visuals.iconClassName}`} />
-                            <Badge variant={visuals.variant as any} className={`capitalize ${visuals.badgeClassName}`}>
+                            <IconComponent
+                              className={`h-4 w-4 ${visuals.iconClassName}`}
+                            />
+                            <Badge
+                              variant={visuals.variant as any}
+                              className={`capitalize ${visuals.badgeClassName}`}
+                            >
                               {applicant.status || "Pending"}
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell>
                           <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => navigate(`/applicants/${applicant._id}`)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/applicants/${applicant._id}`)}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => navigate(`/applicants/edit/${applicant._id}`)}>
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/applicants/edit/${applicant._id}`)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => openDeleteConfirmation(applicant._id, applicant.name)}>
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDeleteConfirmation(applicant._id, applicant.name)}
+                            >
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
                           </div>
@@ -212,7 +260,11 @@ export default function Applicants() {
                     );
                   })
                 ) : (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8">No applicants found</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      No applicants found.
+                    </TableCell>
+                  </TableRow>
                 )}
               </TableBody>
             </Table>
@@ -220,18 +272,34 @@ export default function Applicants() {
         </CardContent>
       </Card>
 
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
+      {/* Delete Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
+      >
         <DialogContent className="max-w-xs">
           <DialogHeader className="items-center text-center">
             <AlertTriangle className="h-8 w-8 text-red-600 mb-2" />
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Delete <span className="font-bold">"{deleteDialog.applicantName}"</span>? This is irreversible.
+              Delete applicant <span className="font-bold">"{deleteDialog.applicantName}"</span>?
             </DialogDescription>
           </DialogHeader>
+
           <DialogFooter className="flex-row gap-3 mt-4">
-            <Button variant="outline" onClick={() => setDeleteDialog({ ...deleteDialog, open: false })} className="flex-1">Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={deleteMutation.isPending} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialog({ ...deleteDialog, open: false })}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteMutation.isPending}
+              className="flex-1"
+            >
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
