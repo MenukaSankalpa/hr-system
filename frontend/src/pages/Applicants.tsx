@@ -33,9 +33,14 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
-// ---------------------------
-// ✅ TYPES AND ICON HELPERS
-// ---------------------------
+// ==============================
+// ✅ ENVIRONMENT CONFIG
+// ==============================
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
+// ==============================
+// ✅ TYPE & HELPER FUNCTIONS
+// ==============================
 type BadgeVariant = "default" | "destructive" | "outline";
 type ApplicantStatus = "selected" | "not-selected" | "future-select" | "pending";
 
@@ -81,31 +86,32 @@ const getStatusVisuals = (status: ApplicantStatus | string): StatusVisuals => {
   }
 };
 
-// ---------------------------
-// ✅ API CALLS
-// ---------------------------
-const API_URL = "https://backendhr-1-rxgk.onrender.com/api";
-
-const getApplicants = async () => {
-  const res = await fetch(`${API_URL}/applicants`);
+// ==============================
+// ✅ API FUNCTIONS
+// ==============================
+async function getApplicants() {
+  const res = await fetch(`${API_URL}/api/applicants`);
   if (!res.ok) throw new Error("Failed to fetch applicants");
   return res.json();
-};
+}
 
-const deleteApplicant = async (id: string) => {
-  const res = await fetch(`${API_URL}/applicants/${id}`, {
-    method: "DELETE",
-  });
+async function deleteApplicant(id: string) {
+  const res = await fetch(`${API_URL}/api/applicants/${id}`, { method: "DELETE" });
   if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData?.message || "Failed to delete applicant");
+    let errorData;
+    try {
+      errorData = await res.json();
+    } catch {
+      throw new Error("Invalid server error");
+    }
+    throw new Error(errorData?.message || "Failed to delete applicant");
   }
   return res.json();
-};
+}
 
-// ---------------------------
+// ==============================
 // ✅ MAIN COMPONENT
-// ---------------------------
+// ==============================
 export default function Applicants() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -135,39 +141,39 @@ export default function Applicants() {
     onError: (error: any) => {
       toast({
         title: "Error Deleting Applicant",
-        description: error.message || "Failed to delete applicant.",
+        description: error.message || "Failed to delete applicant due to a network error.",
         variant: "destructive",
       });
       setDeleteDialog({ open: false, applicantId: "", applicantName: "" });
     },
   });
 
+  const applicants = data || [];
+
   const openDeleteConfirmation = (id: string, name: string) => {
     setDeleteDialog({ open: true, applicantId: id, applicantName: name });
   };
 
   const confirmDelete = () => {
-    if (deleteDialog.applicantId) {
-      deleteMutation.mutate(deleteDialog.applicantId);
-    }
+    if (deleteDialog.applicantId) deleteMutation.mutate(deleteDialog.applicantId);
   };
-
-  const applicants = data || [];
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Applicants</h1>
-          <p className="text-muted-foreground mt-1">Manage and track applicant records</p>
+          <p className="text-muted-foreground mt-1">
+            Manage and track applicant records
+          </p>
         </div>
-
         <Button onClick={() => navigate("/applicants/new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Applicant
+          <Plus className="h-4 w-4 mr-2" /> Add Applicant
         </Button>
       </div>
 
+      {/* Applicants Table */}
       <Card>
         <CardHeader>
           <CardTitle>All Applicants</CardTitle>
@@ -208,10 +214,7 @@ export default function Applicants() {
                         <TableCell>
                           <div className="flex items-center space-x-2">
                             <IconComponent className={`h-4 w-4 ${visuals.iconClassName}`} />
-                            <Badge
-                              variant={visuals.variant as any}
-                              className={`capitalize ${visuals.badgeClassName}`}
-                            >
+                            <Badge variant={visuals.variant as any} className={`capitalize ${visuals.badgeClassName}`}>
                               {applicant.status || "Pending"}
                             </Badge>
                           </div>
@@ -219,25 +222,13 @@ export default function Applicants() {
                         <TableCell>{applicant.createdByName || "-"}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => navigate(`/applicants/${applicant._id}`)}
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => navigate(`/applicants/${applicant._id}`)}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => navigate(`/applicants/edit/${applicant._id}`)}
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => navigate(`/applicants/edit/${applicant._id}`)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openDeleteConfirmation(applicant._id, applicant.name)}
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => openDeleteConfirmation(applicant._id, applicant.name)}>
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
                           </div>
@@ -258,37 +249,23 @@ export default function Applicants() {
         </CardContent>
       </Card>
 
-      <Dialog
-        open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
-      >
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
         <DialogContent className="max-w-xs rounded-lg shadow-2xl">
           <DialogHeader className="items-center text-center pt-4">
             <AlertTriangle className="h-8 w-8 text-red-600 mb-2 animate-pulse" />
-            <DialogTitle className="text-xl font-extrabold text-red-700">
-              Confirm Deletion
-            </DialogTitle>
+            <DialogTitle className="text-xl font-extrabold text-red-700">Confirm Deletion</DialogTitle>
             <DialogDescription className="text-center text-gray-600 mt-2">
               Are you sure you want to permanently delete the applicant{" "}
-              <span className="font-bold text-foreground">"{deleteDialog.applicantName}"</span>?
-              This action is irreversible.
+              <span className="font-bold text-foreground">"{deleteDialog.applicantName}"</span>? This action is irreversible.
             </DialogDescription>
           </DialogHeader>
 
           <DialogFooter className="flex-row gap-3 mt-4 w-full">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialog({ ...deleteDialog, open: false })}
-              className="flex-1 transition-all duration-300 hover:bg-gray-100"
-            >
+            <Button variant="outline" onClick={() => setDeleteDialog({ ...deleteDialog, open: false })} className="flex-1">
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={deleteMutation.isLoading}
-              className="flex-1 bg-red-600 hover:bg-red-700 transition-all duration-300"
-            >
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteMutation.isLoading} className="flex-1">
               {deleteMutation.isLoading ? "Deleting..." : "Delete Permanently"}
             </Button>
           </DialogFooter>
