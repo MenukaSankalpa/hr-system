@@ -22,7 +22,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // ----------------------
-// CORS CONFIG (FIXED)
+// CORS CONFIG (FULLY FIXED)
 // ----------------------
 const allowedOrigins = [
   "https://hr-system-eta.vercel.app",
@@ -33,11 +33,16 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // allow mobile/curl requests
-      const cleanOrigin = origin.replace(/\/$/, ""); // remove trailing slash
+      // allow requests with no origin (like curl, Postman)
+      if (!origin) return callback(null, true);
+
+      // remove trailing slash from incoming origin
+      const cleanOrigin = origin.replace(/\/$/, "");
+
       if (allowedOrigins.includes(cleanOrigin)) {
         return callback(null, true);
       }
+
       return callback(new Error("CORS not allowed"), false);
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -46,8 +51,7 @@ app.use(
   })
 );
 
-
-// Preflight for all routes
+// Preflight requests for all routes
 app.options("*", cors());
 
 // ----------------------
@@ -86,7 +90,7 @@ mongoose
 // ----------------------
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err.message);
-  res.status(500).json({
+  res.status(err.status || 500).json({
     success: false,
     message: err.message || "Internal Server Error",
   });
