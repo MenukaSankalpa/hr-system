@@ -1,3 +1,5 @@
+// File: src/components/Dashboard.tsx (FINAL, STYLED, & CONNECTED)
+
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -25,24 +27,21 @@ import {
     PieChart,
     Pie,
     Cell,
-    Legend, // Included for complete Pie Chart display
+    Legend,
 } from "recharts";
 
 // --- API Configuration ---
-// This URL must match the server.js file running on port 4000
-const API_URL = "http://localhost:4000"; 
+const API_URL = "https://hr-system-2bau.onrender.com/api"; // Hosted backend URL
 
 // --- Data Fetching Functions ---
-// Fetch key statistics (KPIs, Charts)
 const fetchStats = async () => {
-    const res = await fetch(`${API_URL}/api/applicants/dashboard-stats`);
+    const res = await fetch(`${API_URL}/applicants/dashboard-stats`);
     if (!res.ok) throw new Error("Failed to load stats");
     return res.json();
 };
 
-// Fetch recent activity
 const fetchActivities = async () => {
-    const res = await fetch(`${API_URL}/api/applicants/recent-activity`);
+    const res = await fetch(`${API_URL}/applicants/recent-activity`);
     if (!res.ok) throw new Error("Failed to load activities");
     return res.json();
 };
@@ -58,17 +57,16 @@ const item = {
     show: { opacity: 1, y: 0 },
 };
 
-// --- Chart Colors (Tailwind/CSS variable compatible) ---
+// --- Chart Colors ---
 const COLORS = [
-    "hsl(var(--success))",     // Selected (Index 0)
-    "hsl(var(--destructive))", // Not Selected (Index 1)
-    "hsl(var(--info))",         // Future Select (Index 2)
-    "hsl(var(--warning))",      // Pending (Index 3)
+    "hsl(var(--success))",
+    "hsl(var(--destructive))",
+    "hsl(var(--info))",
+    "hsl(var(--warning))",
 ];
 
 // --- Main Dashboard Component ---
 export default function Dashboard() {
-    // Note: The useQuery hook handles loading states and caching
     const { data: stats, isLoading: isLoadingStats } = useQuery({
         queryKey: ["stats"],
         queryFn: fetchStats,
@@ -79,53 +77,17 @@ export default function Dashboard() {
         queryFn: fetchActivities,
     });
 
-    // --- KPI Card Data ---
+    // --- KPI Cards ---
     const kpiCards = [
-        {
-            title: "Total Applicants",
-            value: stats?.totalApplicants || 0,
-            icon: Users,
-            color: "text-primary",
-            bgColor: "bg-primary/10",
-        },
-        {
-            title: "Selected",
-            value: stats?.selectedCount || 0,
-            icon: UserCheck,
-            color: "text-success",
-            bgColor: "bg-success/10",
-        },
-        {
-            title: "Not Selected",
-            value: stats?.notSelectedCount || 0,
-            icon: UserX,
-            color: "text-destructive",
-            bgColor: "bg-destructive/10",
-        },
-        {
-            title: "Future Select",
-            value: stats?.futureSelectCount || 0,
-            icon: Clock,
-            color: "text-info",
-            bgColor: "bg-info/10",
-        },
-        {
-            title: "Pending", 
-            value: stats?.pendingCount || 0,
-            icon: Briefcase,
-            color: "text-warning",
-            bgColor: "bg-warning/10",
-        },
-        {
-            title: "Today's Interviews",
-            value: stats?.todaysInterviews || 0, 
-            icon: Calendar,
-            color: "text-accent",
-            bgColor: "bg-accent/10",
-        },
+        { title: "Total Applicants", value: stats?.totalApplicants || 0, icon: Users, color: "text-primary", bgColor: "bg-primary/10" },
+        { title: "Selected", value: stats?.selectedCount || 0, icon: UserCheck, color: "text-success", bgColor: "bg-success/10" },
+        { title: "Not Selected", value: stats?.notSelectedCount || 0, icon: UserX, color: "text-destructive", bgColor: "bg-destructive/10" },
+        { title: "Future Select", value: stats?.futureSelectCount || 0, icon: Clock, color: "text-info", bgColor: "bg-info/10" },
+        { title: "Pending", value: stats?.pendingCount || 0, icon: Briefcase, color: "text-warning", bgColor: "bg-warning/10" },
+        { title: "Today's Interviews", value: stats?.todaysInterviews || 0, icon: Calendar, color: "text-accent", bgColor: "bg-accent/10" },
     ];
 
-    // --- Chart Data Mapping ---
+    // --- Pie Chart Data ---
     const chartData = [
         { name: "Selected", value: stats?.selectedCount || 0 },
         { name: "Not Selected", value: stats?.notSelectedCount || 0 },
@@ -133,12 +95,13 @@ export default function Dashboard() {
         { name: "Pending", value: stats?.pendingCount || 0 },
     ];
 
-    const monthlyData =
-        stats?.monthly?.map((m: any) => ({
-            month: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m.month - 1],
-            applicants: m.applicants,
-        })) || [];
+    // --- Monthly Applicants Data ---
+    const monthlyData = stats?.monthly?.map((m: any) => ({
+        month: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m.month - 1],
+        applicants: m.applicants,
+    })) || [];
 
+    // --- Loading State ---
     if (isLoadingStats || isLoadingActivities) {
         return (
             <div className="p-6 text-center text-lg text-primary">
@@ -147,6 +110,7 @@ export default function Dashboard() {
         );
     }
 
+    // --- Render Dashboard ---
     return (
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
@@ -157,21 +121,19 @@ export default function Dashboard() {
                     </p>
                 </div>
             </div>
-            
+
             {/* --- KPI Cards Section --- */}
             <motion.div
                 variants={container}
                 initial="hidden"
                 animate="show"
-                className="grid gap-4 sm:grid-cols-2 md:grid-cols-3" 
+                className="grid gap-4 sm:grid-cols-2 md:grid-cols-3"
             >
                 {kpiCards.map((card) => (
                     <motion.div key={card.title} variants={item}>
                         <Card className="hover:shadow-lg transition-shadow">
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-sm font-medium">
-                                    {card.title}
-                                </CardTitle>
+                                <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
                                 <div className={`${card.bgColor} p-2 rounded-lg`}>
                                     <card.icon className={`h-4 w-4 ${card.color}`} />
                                 </div>
@@ -184,8 +146,9 @@ export default function Dashboard() {
                 ))}
             </motion.div>
 
+            {/* --- Charts Section --- */}
             <div className="grid gap-6 md:grid-cols-2">
-                {/* --- Applicant Status Distribution Pie Chart --- */}
+                {/* Pie Chart */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Applicant Status Distribution</CardTitle>
@@ -204,20 +167,17 @@ export default function Dashboard() {
                                     label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                                 >
                                     {chartData.map((entry, index) => (
-                                        <Cell
-                                            key={`cell-${index}`}
-                                            fill={COLORS[index % COLORS.length]}
-                                        />
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip formatter={(value, name) => [value, name]} /> 
+                                <Tooltip formatter={(value, name) => [value, name]} />
                                 <Legend layout="horizontal" align="center" verticalAlign="bottom" />
                             </PieChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
 
-                {/* --- Monthly Applicants Bar Chart --- */}
+                {/* Monthly Applicants Bar Chart */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Monthly Applicants</CardTitle>
@@ -227,13 +187,9 @@ export default function Dashboard() {
                             <BarChart data={monthlyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="month" />
-                                <YAxis allowDecimals={false} label={{ value: 'Count', angle: -90, position: 'insideLeft' }} /> 
+                                <YAxis allowDecimals={false} label={{ value: 'Count', angle: -90, position: 'insideLeft' }} />
                                 <Tooltip formatter={(value) => [value, 'Applicants']} />
-                                <Bar
-                                    dataKey="applicants"
-                                    fill="hsl(var(--primary))"
-                                    radius={[4, 4, 0, 0]}
-                                />
+                                <Bar dataKey="applicants" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -249,16 +205,11 @@ export default function Dashboard() {
                     <div className="space-y-4">
                         {activities?.length > 0 ? (
                             activities.map((act: any) => (
-                                <div
-                                    key={act.id}
-                                    className="flex items-start gap-4 pb-4 border-b last:border-0"
-                                >
+                                <div key={act.id} className="flex items-start gap-4 pb-4 border-b last:border-0">
                                     <div className="h-2 w-2 rounded-full bg-primary mt-2 flex-shrink-0" />
                                     <div className="flex-1">
                                         <p className="text-sm">
-                                            <span className="font-medium">{act.userName}</span>{" "}
-                                            {act.action}{" "}
-                                            <span className="font-medium">{act.applicantName}</span>
+                                            <span className="font-medium">{act.userName}</span> {act.action} <span className="font-medium">{act.applicantName}</span>
                                         </p>
                                         <p className="text-xs text-muted-foreground mt-1">
                                             {new Date(act.timestamp).toLocaleString()}
