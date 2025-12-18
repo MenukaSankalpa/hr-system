@@ -74,9 +74,6 @@ const applicantSchema = z.object({
 
 type ApplicantFormData = z.infer<typeof applicantSchema>;
 
-const API_BASE_URL = 'https://hr-system-2bau.onrender.com';
-
-
 export default function ApplicantForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -135,14 +132,12 @@ export default function ApplicantForm() {
       }
 
       const url = id
-  ? `${API_BASE_URL}/api/applicants/${id}`
-  : `${API_BASE_URL}/api/applicants`;
-
+        ? `http://localhost:4000/api/applicants/${id}`
+        : 'http://localhost:4000/api/applicants';
 
       const response = await fetch(url, {
         method: id ? 'PUT' : 'POST',
         body: formData,
-        credentials: 'include',
       });
 
       const result = await response.json();
