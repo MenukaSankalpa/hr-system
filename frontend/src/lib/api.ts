@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/stores/authStore';
 
 // ⭐ Updated: Added the Render URL as a fallback if the Env Var is missing
-const RENDER_URL = "https://backendhr-1-rxgk.onrender.com";
+const RENDER_URL = "https://hr-system-2bau.onrender.com";
 const API_BASE_URL = `${import.meta.env.VITE_API_URL || RENDER_URL}/api`;
 
 export async function authenticatedFetch(
