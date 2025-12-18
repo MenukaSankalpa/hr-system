@@ -22,7 +22,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // ----------------------
-// CORS CONFIG (FULLY FIXED)
+// CORS CONFIG (FINAL + SAFE)
 // ----------------------
 const allowedOrigins = [
   "https://hr-system-eta.vercel.app",
@@ -30,40 +30,40 @@ const allowedOrigins = [
   "http://localhost:3000",
 ];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // allow requests with no origin (like curl, Postman)
-      if (!origin) return callback(null, true);
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
 
-      // remove trailing slash from incoming origin
-      const cleanOrigin = origin.replace(/\/$/, "");
+    const cleanOrigin = origin.replace(/\/$/, "");
 
-      if (allowedOrigins.includes(cleanOrigin)) {
-        return callback(null, true);
-      }
+    if (allowedOrigins.includes(cleanOrigin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
 
-      return callback(new Error("CORS not allowed"), false);
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-
-// Preflight requests for all routes
-app.options("*", cors());
+// APPLY SAME OPTIONS EVERYWHERE
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // ----------------------
 // MIDDLEWARES
 // ----------------------
 app.use(express.json());
 
-// CV Upload Folder Setup
+// ----------------------
+// STATIC FILES (CV UPLOADS)
+// ----------------------
 const cvUploadPath = path.join(__dirname, "uploads/cv");
 if (!fs.existsSync(cvUploadPath)) {
   fs.mkdirSync(cvUploadPath, { recursive: true });
 }
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ----------------------
