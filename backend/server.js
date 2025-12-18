@@ -32,24 +32,23 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // allow curl/mobile requests
 
+    // Remove trailing slash if present
     const cleanOrigin = origin.replace(/\/$/, "");
-
     if (allowedOrigins.includes(cleanOrigin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS not allowed"));
+      return callback(null, true);
     }
+    return callback(new Error("CORS not allowed"));
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
-// APPLY SAME OPTIONS EVERYWHERE
+// Apply CORS globally
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.options("*", cors(corsOptions)); // preflight support
 
 // ----------------------
 // MIDDLEWARES
@@ -63,7 +62,6 @@ const cvUploadPath = path.join(__dirname, "uploads/cv");
 if (!fs.existsSync(cvUploadPath)) {
   fs.mkdirSync(cvUploadPath, { recursive: true });
 }
-
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ----------------------
@@ -79,9 +77,7 @@ app.use("/api/admin", adminRoutes);
 // DATABASE CONNECT
 // ----------------------
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    dbName: "hr_system_db",
-  })
+  .connect(process.env.MONGODB_URI, { dbName: "hr_system_db" })
   .then(() => console.log("🔥 MongoDB Connected Successfully"))
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
