@@ -1,5 +1,3 @@
-// File: server.js
-
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
@@ -12,7 +10,6 @@ import { fileURLToPath } from "url";
 // ENV CONFIG
 // ----------------------
 dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -22,7 +19,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // ----------------------
-// CORS CONFIG (FINAL + SAFE)
+// CORS CONFIG (SAFE)
 // ----------------------
 const allowedOrigins = [
   "https://hr-system-eta.vercel.app",
@@ -31,14 +28,13 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-  origin: (origin, callback) => {
+  origin: function (origin, callback) {
     if (!origin) return callback(null, true); // allow curl/mobile requests
 
-    // Remove trailing slash if present
-    const cleanOrigin = origin.replace(/\/$/, "");
-    if (allowedOrigins.includes(cleanOrigin)) {
-      return callback(null, true);
-    }
+    const normalizedOrigin = origin.replace(/\/$/, "");
+    const allowed = allowedOrigins.some(o => o.replace(/\/$/, "") === normalizedOrigin);
+
+    if (allowed) return callback(null, true);
     return callback(new Error("CORS not allowed"));
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -46,9 +42,8 @@ const corsOptions = {
   credentials: true,
 };
 
-// Apply CORS globally
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // preflight support
+app.options("*", cors(corsOptions));
 
 // ----------------------
 // MIDDLEWARES
@@ -58,7 +53,7 @@ app.use(express.json());
 // ----------------------
 // STATIC FILES (CV UPLOADS)
 // ----------------------
-const cvUploadPath = path.join(__dirname, "uploads/cv");
+const cvUploadPath = path.join(__dirname, "uploads/cv/name");
 if (!fs.existsSync(cvUploadPath)) {
   fs.mkdirSync(cvUploadPath, { recursive: true });
 }
