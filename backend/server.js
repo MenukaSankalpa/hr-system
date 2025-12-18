@@ -13,30 +13,36 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// ----------------------
-// ⭐ FIXED CORS SETUP
-// ----------------------
+/* ================================
+   ✅ FINAL CORS CONFIG (FIXED)
+================================ */
 const allowedOrigins = [
-  "https://hr-system-eta.vercel.app", // No trailing slash
-  "http://localhost:5173",            // Common Vite local port
-  "http://localhost:3000"             // Common React local port
+  "https://hr-system-eta.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
 ];
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps or curl requests)
+    origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
-        var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-        return callback(new Error(msg), false);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
       }
-      return callback(null, true);
+      return callback(new Error("CORS not allowed"), false);
     },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
+/* ✅ VERY IMPORTANT – allow preflight */
+app.options("*", cors());
+
+/* ================================
+   MIDDLEWARES
+================================ */
 app.use(express.json());
 
 const cvUploadPath = path.join(__dirname, "uploads/cv");
@@ -46,14 +52,18 @@ if (!fs.existsSync(cvUploadPath)) {
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes
+/* ================================
+   ROUTES
+================================ */
 import applicantRoutes from "./routes/applicantRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
 app.use("/api/applicants", applicantRoutes);
 app.use("/api/admin", adminRoutes);
 
-// MongoDB
+/* ================================
+   DATABASE
+================================ */
 mongoose
   .connect(process.env.MONGODB_URI, {
     dbName: "hr_system_db",
@@ -61,14 +71,20 @@ mongoose
   .then(() => console.log("🔥 MongoDB Connected Successfully"))
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
-// Error Handler
+/* ================================
+   ERROR HANDLER
+================================ */
 app.use((err, req, res, next) => {
-  res.status(err.status || 500).json({
+  console.error("❌ Error:", err.message);
+  res.status(500).json({
     success: false,
     message: err.message || "Internal Server Error",
   });
 });
 
+/* ================================
+   START SERVER
+================================ */
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
