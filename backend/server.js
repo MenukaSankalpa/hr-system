@@ -33,8 +33,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      console.log("Incoming request from origin:", origin);
-      if (!origin) return callback(null, true); // allow non-browser requests
+      if (!origin) return callback(null, true); // allow mobile/curl requests
       const cleanOrigin = origin.replace(/\/$/, ""); // remove trailing slash
       if (allowedOrigins.includes(cleanOrigin)) {
         return callback(null, true);
@@ -46,6 +45,7 @@ app.use(
     credentials: true,
   })
 );
+
 
 // Preflight for all routes
 app.options("*", cors());
