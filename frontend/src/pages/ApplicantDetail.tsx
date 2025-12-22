@@ -59,6 +59,9 @@ function Info({ label, value }: { label: string; value: any }) {
   );
 }
 
+const BACKEND_URL = "https://hr-system-2bau.onrender.com";
+
+
 export default function ApplicantDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -304,7 +307,8 @@ export default function ApplicantDetails() {
                   <FileText className="h-16 w-16 text-blue-500" />
                   <p>Uploaded CV</p>
                   <a
-                    href={`${import.meta.env.VITE_API_URL}/uploads/${applicant.cvFile}`}
+                    //href={`${import.meta.env.VITE_API_URL}/uploads/${applicant.cvFile}`}
+                    href={`${BACKEND_URL}/uploads/${applicant.cvFile}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"

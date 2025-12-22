@@ -337,9 +337,14 @@ router.post("/", upload.single("cvFile"), async (req, res) => {
   try {
     const data = req.body;
 
+    // if (req.file) {
+    //   data.cvFile = `/uploads/cv/name/${req.file.filename}`; // Path for frontend access
+    // }
+
     if (req.file) {
-      data.cvFile = `/uploads/cv/name/${req.file.filename}`; // Path for frontend access
+          data.cvFile = `cv/name/${req.file.filename}`;
     }
+
 
     const applicant = new Applicant(data);
     await applicant.save();
