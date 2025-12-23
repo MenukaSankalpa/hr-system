@@ -109,38 +109,38 @@ export default function ApplicantDetails() {
     }
   };
 
-  // const handlePrint = () => window.print();
-  // const handleExportPdf = async () => {
-  //   toast({ title: "Info", description: "PDF export feature coming soon" });
-  // };
-const handleExportPdf = async () => {
-  try {
-    setExporting(true);
+  const handlePrint = () => window.print();
+  const handleExportPdf = async () => {
+    toast({ title: "Info", description: "PDF export feature coming soon" });
+  };
+// const handleExportPdf = async () => {
+//   try {
+//     setExporting(true);
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/applicants/report/pdf?id=${id}`,
-      { credentials: "include" }
-    );
+//     const response = await fetch(
+//       `${BACKEND_URL}/api/applicants/report/pdf?id=${id}`,
+//       { credentials: "include" }
+//     );
 
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+//     const blob = await response.blob();
+//     const url = window.URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${applicant?.name}-Interview-Report.pdf`;
-    a.click();
+//     const a = document.createElement("a");
+//     a.href = url;
+//     a.download = `${applicant?.name}-Interview-Report.pdf`;
+//     a.click();
 
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Failed to export PDF",
-      variant: "destructive",
-    });
-  } finally {
-    setExporting(false);
-  }
-};
+//     window.URL.revokeObjectURL(url);
+//   } catch (error) {
+//     toast({
+//       title: "Error",
+//       description: "Failed to export PDF",
+//       variant: "destructive",
+//     });
+//   } finally {
+//     setExporting(false);
+//   }
+// };
 
 
   if (loading) return <p className="p-6">Loading applicant details...</p>;
