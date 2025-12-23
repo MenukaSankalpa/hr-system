@@ -2,6 +2,7 @@
 
 import Applicant from "../models/Applicant.js";
 import { stringify } from 'csv-stringify/sync';
+import PDFDocument from "pdfkit";
 
 // Helper function to calculate date filters
 const getDateFilter = (range) => {
@@ -305,6 +306,79 @@ export const generateCsvReport = async (req, res, next) => {
 // ===================================
 // GENERATE PDF REPORT (Placeholder)
 // ===================================
-export const generatePdfReport = async (req, res, next) => {
-    res.status(501).json({ message: "PDF generation not yet implemented on the server." }); 
+// export const generatePdfReport = async (req, res, next) => {
+//     res.status(501).json({ message: "PDF generation not yet implemented on the server." }); 
+// };
+
+export const generatePdfReport = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const applicant = await Applicant.findById(id);
+
+    if (!applicant) {
+      return res.status(404).json({ message: "Applicant not found" });
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${applicant.name}-profile.pdf"`
+    );
+
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    doc.pipe(res);
+
+    // ---------- HEADER ----------
+    doc
+      .fontSize(20)
+      .text("Applicant Interview Report", { align: "center" })
+      .moveDown();
+
+    doc.fontSize(12).text(`Name: ${applicant.name}`);
+    doc.text(`NIC: ${applicant.nicNumber}`);
+    doc.text(`Phone: ${applicant.phone}`);
+    doc.text(`Status: ${applicant.status}`);
+    doc.text(`Applied Date: ${applicant.createdAt.toDateString()}`);
+
+    doc.moveDown();
+
+    // ---------- SCORES ----------
+    doc.fontSize(14).text("Evaluation Scores", { underline: true });
+    doc.fontSize(12);
+    doc.text(`Punctuality: ${applicant.punctuality}/10`);
+    doc.text(`Preparedness: ${applicant.preparedness}/10`);
+    doc.text(`Communication: ${applicant.communicationSkills}/10`);
+    doc.text(`Experience: ${applicant.experienceRequired}/10`);
+    doc.text(`Qualification: ${applicant.qualificationRequired}/10`);
+
+    const total =
+      applicant.punctuality +
+      applicant.preparedness +
+      applicant.communicationSkills +
+      applicant.experienceRequired +
+      applicant.qualificationRequired;
+
+    doc.moveDown();
+    doc.fontSize(14).text(`Total Marks: ${total}/50`);
+
+    // ---------- COMMENTS ----------
+    doc.moveDown();
+    doc.fontSize(14).text("Comments", { underline: true });
+    doc.fontSize(12).text(applicant.comments || "N/A");
+
+    // ---------- APPOINTMENT ----------
+    if (applicant.position) {
+      doc.moveDown();
+      doc.fontSize(14).text("Appointment Details", { underline: true });
+      doc.fontSize(12);
+      doc.text(`Position: ${applicant.position}`);
+      doc.text(`Department: ${applicant.department}`);
+      doc.text(`Salary: LKR ${applicant.agreedSalary || "N/A"}`);
+    }
+
+    doc.end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "PDF generation failed" });
+  }
 };
