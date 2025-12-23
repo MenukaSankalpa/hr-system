@@ -318,11 +318,11 @@ export default function ApplicantDetails() {
             </CardContent>
           </Card>
         </TabsContent> */}
-        <TabsContent value="cv">
-  <Card className="border-muted shadow-sm">
+  <TabsContent value="cv">
+  <Card className="border border-gray-200 shadow-sm rounded-lg">
     <CardHeader className="pb-3">
-      <CardTitle className="text-lg font-semibold flex items-center gap-2">
-        <FileText className="w-5 h-5 text-primary" />
+      <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+        <FileText className="w-5 h-5 text-blue-600" />
         CV
       </CardTitle>
     </CardHeader>
@@ -333,14 +333,14 @@ export default function ApplicantDetails() {
           href={`${BACKEND_URL}/uploads/${applicant.cvFile}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition"
         >
           <Download className="w-4 h-4" />
           Download CV
         </a>
       ) : (
-        <div className="text-center text-muted-foreground text-sm flex flex-col items-center gap-1">
-          <FileText className="w-6 h-6 text-muted-foreground" />
+        <div className="flex flex-col items-center gap-1 text-gray-400 text-sm">
+          <FileText className="w-6 h-6" />
           <span>No CV uploaded</span>
         </div>
       )}
