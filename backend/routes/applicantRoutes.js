@@ -362,6 +362,8 @@ router.post("/", upload.single("cvFile"), async (req, res) => {
 
 router.patch("/:id", updateApplicant);        // Update applicant (status, fields)
 router.delete("/:id", deleteApplicant);       // Delete applicant
+router.get("/report/pdf", generatePdfReport);
+
 
 // ----------------------
 // EXPORT ROUTER
