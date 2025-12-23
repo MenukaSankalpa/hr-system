@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { authenticatedFetch } from "@/lib/api";
+import { FaFileAlt, FaDownload } from "react-icons/fa";
+
 
 /* ===================== TYPES ===================== */
 
@@ -295,7 +297,7 @@ export default function ApplicantDetails() {
         </TabsContent>
 
         {/* CV */}
-        <TabsContent value="cv">
+        {/* <TabsContent value="cv">
           <Card>
             <CardHeader>
               <CardTitle>CV</CardTitle>
@@ -315,7 +317,37 @@ export default function ApplicantDetails() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
+        <TabsContent value="cv">
+  <Card className="border-muted shadow-sm">
+    <CardHeader className="pb-3">
+      <CardTitle className="text-lg font-semibold flex items-center gap-2">
+        <FileText className="w-5 h-5 text-primary" />
+        CV
+      </CardTitle>
+    </CardHeader>
+
+    <CardContent className="flex items-center justify-center min-h-[120px]">
+      {applicant.cvFile ? (
+        <a
+          href={`${BACKEND_URL}/uploads/${applicant.cvFile}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 transition"
+        >
+          <Download className="w-4 h-4" />
+          Download CV
+        </a>
+      ) : (
+        <div className="text-center text-muted-foreground text-sm flex flex-col items-center gap-1">
+          <FileText className="w-6 h-6 text-muted-foreground" />
+          <span>No CV uploaded</span>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+</TabsContent>
+
 
         {/* INTERVIEW */}
         <TabsContent value="interview">
